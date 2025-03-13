@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
-from models.alert import AlertRule
+from models.alert_rules import AlertRule
 from schemas.alert_rules import AlertRuleCreate, AlertRuleOut
 import uuid
 

@@ -6,6 +6,7 @@ from schemas.user import UserCreate, UserOut
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
+
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter_by(email=user_data.email).first()
@@ -22,9 +23,11 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
+
 @router.get("/", response_model=list[UserOut])
 def list_users(db: Session = Depends(get_db)):
     return db.query(User).all()
+
 
 @router.get("/{user_id}", response_model=UserOut)
 def get_user(user_id: int, db: Session = Depends(get_db)):
@@ -32,6 +35,7 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(user_id: int, db: Session = Depends(get_db)):
