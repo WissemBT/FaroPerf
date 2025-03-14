@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.server import Server
 from schemas.server import ServerCreate, ServerUpdate, ServerOut
+from datetime import datetime
 import uuid
 
 router = APIRouter(prefix="/servers", tags=["Servers"])
@@ -15,7 +16,7 @@ def create_server(server_data: ServerCreate, db: Session = Depends(get_db)):
 
     new_server = Server(
         hostname=server_data.hostname,
-        ip_address=server_data.ip_address
+        ip_address=server_data.ip_address,
     )
 
     db.add(new_server)
