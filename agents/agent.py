@@ -1,32 +1,67 @@
 import psutil
 import requests
 import time
-import uuid
+import socket
 from datetime import datetime
+import uuid
 
 
-SERVER_ID = str(uuid.uuid4())
-BACKEND_URL = "http://127.0.0.1:8000/metrics/"
-INTERVAL = 20 # every 20 s
+BACKEND_URL = "http://127.0.0.1:8000"
+INTERVAL = 20  # Send metrics every 20 seconds
 
-def collect_metrics():
-    """Collect system metrics using psutil"""
+
+def get_system_info():
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    return hostname, ip_address
+
+
+def register_server():
+    hostname, ip_address = get_system_info()
+
+    response = requests.get(f"{BACKEND_URL}/servers/")
+    if response.status_code == 200:
+        servers = response.json()
+        for server in servers:
+            if server["ip_address"] == ip_address:
+                print(f"Server already registered: {server['server_id']}")
+                return server["server_id"]
+
+    data = {"hostname": hostname, "ip_address": ip_address}
+    response = requests.post(f"{BACKEND_URL}/servers/", json=data)
+
+    if response.status_code == 201:
+        server_id = response.json()["server_id"]
+        print(f"Server registered successfully! ID: {server_id}")
+        return server_id
+    else:
+        print(f"Failed to register server: {response.text}")
+        return None
+
+
+def collect_metrics(server_id):
+    """Collect system metrics using psutil."""
     return {
-        "server_id": SERVER_ID,
+        "server_id": server_id,
         "timestamp": datetime.utcnow().isoformat(),
-        "cpu_usage": psutil.cpu_percent(interval=1),  # 1 sec average CPU usage
+        "cpu_usage": psutil.cpu_percent(interval=1),
         "memory_usage": psutil.virtual_memory().percent,
         "disk_usage": psutil.disk_usage('/').percent,
-        "network_in": psutil.net_io_counters().bytes_recv / (1024 * 1024),  # Convert to MB
-        "network_out": psutil.net_io_counters().bytes_sent / (1024 * 1024)  # Convert to MB
+        "network_in": psutil.net_io_counters().bytes_recv / (1024 * 1024),  # MB
+        "network_out": psutil.net_io_counters().bytes_sent / (1024 * 1024)  # MB
     }
 
+
 def send_metrics():
-    """Send collected metrics to the FastAPI backend."""
+    server_id = register_server()
+    if not server_id:
+        print("Exiting: Could not get server ID")
+        return
+
     while True:
         try:
-            data = collect_metrics()
-            response = requests.post(BACKEND_URL, json=data)
+            data = collect_metrics(server_id)
+            response = requests.post(f"{BACKEND_URL}/metrics/", json=data)
 
             if response.status_code == 201:
                 print(f"[{datetime.utcnow()}] Metrics sent successfully")
@@ -38,7 +73,6 @@ def send_metrics():
 
         time.sleep(INTERVAL)
 
-
 if __name__ == "__main__":
-    print(f"Monitoring Agent Started (Server ID: {SERVER_ID})")
+    print("Monitoring Agent Started")
     send_metrics()
