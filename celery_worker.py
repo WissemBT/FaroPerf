@@ -6,15 +6,15 @@ from models.metric import Metric
 from models.alert_rules import AlertRule
 from models.alert import Alert
 from datetime import datetime, timedelta
+from celery.schedules import crontab
 
-# Define Celery
+
 celery = Celery(
     "tasks",
     broker="redis://localhost:6379/0",
     backend="redis://localhost:6379/0"
 )
 
-# Database Connection
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -73,3 +73,14 @@ def check_alerts():
     finally:
         db.close()
 
+
+celery.conf.beat_schedule = {
+    "check-alerts-every-minute": {
+        "task": "celery_worker.check_alerts",
+        "schedule": crontab(minute="*"),  # Run every minute
+    }
+}
+
+
+#celery -A celery_worker worker --loglevel=info
+#celery -A celery_worker beat --loglevel=info
