@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, DateTime, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from database import Base
 from datetime import datetime
@@ -12,3 +12,4 @@ class Server(Base):
     hostname = Column(String, nullable=False)
     ip_address = Column(String, unique=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
