@@ -10,3 +10,4 @@ class User(Base):
     name = Column(String, nullable=False)
     role = Column(String, nullable=False, default="User")  # "Admin" or "User"
     created_at = Column(DateTime, default=datetime.utcnow)
+    hashed_password = Column(String, nullable=False)
