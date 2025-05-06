@@ -3,7 +3,6 @@ from datetime import datetime
 
 class NotificationBase(BaseModel):
     alert_id: int
-    user_id: int
     method: str
 
 class NotificationCreate(NotificationBase):
