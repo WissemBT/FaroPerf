@@ -5,11 +5,13 @@ from models.metric import Metric
 from schemas.metric import MetricCreate, MetricOut
 import uuid
 from datetime import datetime
+from routes.auth import get_current_user
+from models.user import User
 
 router = APIRouter(prefix="/metrics", tags=["Metrics"])
 
 @router.post("/",response_model=MetricOut, status_code=status.HTTP_201_CREATED)
-def create_metric(metric_data: MetricCreate, db: Session= Depends(get_db)):
+def create_metric(metric_data: MetricCreate, db: Session= Depends(get_db), current_user: User = Depends(get_current_user)):
     new_metric = Metric(
         metric_id=str(uuid.uuid4()),
         server_id=metric_data.server_id,
@@ -27,6 +29,6 @@ def create_metric(metric_data: MetricCreate, db: Session= Depends(get_db)):
     return new_metric
 
 @router.get("/{server_id}",response_model=list[MetricOut])
-def get_metrics_for_server(server_id: uuid.UUID, db: Session = Depends(get_db)):
+def get_metrics_for_server(server_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     metrics = db.query(Metric).filter_by(server_id=server_id).all()
     return metrics

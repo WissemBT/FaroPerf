@@ -4,13 +4,14 @@ from database import get_db
 from models.alert import Alert
 from schemas.alert import AlertCreate, AlertOut
 from datetime import datetime
-
+from routes.auth import get_current_user
+from models.user import User
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
 
 @router.post("/", response_model=AlertOut, status_code=status.HTTP_201_CREATED)
-def create_alert(alert_data: AlertCreate, db: Session = Depends(get_db)):
+def create_alert(alert_data: AlertCreate, db: Session = Depends(get_db),current_user: User = Depends(get_current_user)):
     new_alert = Alert(
         server_id=alert_data.server_id,
         rule_id=alert_data.rule_id,
@@ -24,7 +25,7 @@ def create_alert(alert_data: AlertCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{alert_id}", response_model=AlertOut)
-def get_alert(alert_id: int, db: Session = Depends(get_db)):
+def get_alert(alert_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     alert = db.query(Alert).filter_by(alert_id=alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
@@ -32,7 +33,7 @@ def get_alert(alert_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{alert_id}", response_model=AlertOut)
-def update_alert(alert_id: int, db: Session = Depends(get_db)):
+def update_alert(alert_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     alert = db.query(Alert).filter_by(alert_id=alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
@@ -43,7 +44,7 @@ def update_alert(alert_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{alert_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_alert(alert_id: int, db: Session = Depends(get_db)):
+def delete_alert(alert_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     alert = db.query(Alert).filter_by(alert_id=alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")

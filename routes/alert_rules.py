@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.alert_rules import AlertRule
 from schemas.alert_rules import AlertRuleCreate, AlertRuleOut
+from routes.auth import get_current_user
+from models.user import User
 import uuid
 
 
@@ -10,7 +12,7 @@ router = APIRouter(prefix="/alert-rules", tags=["Alert Rules"])
 
 
 @router.post("/", response_model=AlertRuleOut, status_code=status.HTTP_201_CREATED)
-def create_alert_rule(rule_data: AlertRuleCreate, db: Session = Depends(get_db)):
+def create_alert_rule(rule_data: AlertRuleCreate, db: Session = Depends(get_db),current_user: User = Depends(get_current_user)):
     new_rule = AlertRule(**rule_data.dict())
     db.add(new_rule)
     db.commit()
@@ -19,12 +21,12 @@ def create_alert_rule(rule_data: AlertRuleCreate, db: Session = Depends(get_db))
 
 
 @router.get("/server/{server_id}", response_model=list[AlertRuleOut])
-def list_alert_rules_for_server(server_id: uuid.UUID, db: Session = Depends(get_db)):
+def list_alert_rules_for_server(server_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(AlertRule).filter_by(server_id=server_id).all()
 
 
 @router.get("/{rule_id}", response_model=AlertRuleOut)
-def get_alert_rule(rule_id: int, db: Session = Depends(get_db)):
+def get_alert_rule(rule_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     rule = db.query(AlertRule).filter_by(rule_id=rule_id).first()
     if not rule:
         raise HTTPException(status_code=404, detail="Alert rule not found")
@@ -32,7 +34,7 @@ def get_alert_rule(rule_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{rule_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_alert_rule(rule_id: int, db: Session = Depends(get_db)):
+def delete_alert_rule(rule_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     rule = db.query(AlertRule).filter_by(rule_id=rule_id).first()
     if not rule:
         raise HTTPException(status_code=404, detail="Alert rule not found")
