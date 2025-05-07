@@ -40,7 +40,7 @@ def generate_api_key(
     raw_key = secrets.token_urlsafe(32)
     db.add(APIKey(key_hash=hash_key(raw_key), server=server_id))
     db.commit()
-    return {"api_key": raw_key}  # show only once
+    return {"api_key": raw_key}
 
 
 @router.get("/", response_model=list[str])
@@ -51,7 +51,7 @@ def list_api_keys(
 ):
     _owned_server(server_id, current_user.user_id, db)
     return [
-        row.key_hash[:8] + "…"  # show shortened hash
+        row.key_hash
         for row in db.query(APIKey)
         .filter_by(server=server_id, is_active=True)
         .all()

@@ -1,78 +1,51 @@
-import psutil
-import requests
+import json
+import os
 import time
+import psutil
 import socket
-from datetime import datetime
-import uuid
+import requests
+from datetime import datetime, timezone
 
 
-BACKEND_URL = "http://127.0.0.1:8000"
-INTERVAL = 20  # Send metrics every 20 seconds
+CONF_PATH = os.getenv("FARO_CONF", "/tmp/faro-conf.json")
+INTERVAL  = int(os.getenv("FARO_INTERVAL", "20"))
 
 
-def get_system_info():
-    hostname = socket.gethostname()
-    ip_address = socket.gethostbyname(hostname)
-    return hostname, ip_address
+def load_conf():
+    with open(CONF_PATH) as f:
+        cfg = json.load(f)
+    return cfg["backend_url"], cfg["server_id"], cfg["api_key"]
 
 
-def register_server():
-    hostname, ip_address = get_system_info()
-
-    response = requests.get(f"{BACKEND_URL}/servers/")
-    if response.status_code == 200:
-        servers = response.json()
-        for server in servers:
-            if server["ip_address"] == ip_address:
-                print(f"Server already registered: {server['server_id']}")
-                return server["server_id"]
-
-    data = {"hostname": hostname, "ip_address": ip_address}
-    response = requests.post(f"{BACKEND_URL}/servers/", json=data)
-
-    if response.status_code == 201:
-        server_id = response.json()["server_id"]
-        print(f"Server registered successfully! ID: {server_id}")
-        return server_id
-    else:
-        print(f"Failed to register server: {response.text}")
-        return None
-
-
-def collect_metrics(server_id):
-    """Collect system metrics using psutil."""
+def collect_metrics():
     return {
-        "server_id": server_id,
-        "timestamp": datetime.utcnow().isoformat(),
-        "cpu_usage": psutil.cpu_percent(interval=1),
+        "timestamp"   : datetime.now(timezone.utc).isoformat(),
+        "cpu_usage"   : psutil.cpu_percent(interval=1),
         "memory_usage": psutil.virtual_memory().percent,
-        "disk_usage": psutil.disk_usage('/').percent,
-        "network_in": psutil.net_io_counters().bytes_recv / (1024 * 1024),  # MB
-        "network_out": psutil.net_io_counters().bytes_sent / (1024 * 1024)  # MB
+        "disk_usage"  : psutil.disk_usage('/').percent,
+        "network_in"  : psutil.net_io_counters().bytes_recv / (1024*1024),
+        "network_out" : psutil.net_io_counters().bytes_sent / (1024*1024),
     }
 
 
-def send_metrics():
-    server_id = register_server()
-    if not server_id:
-        print("Exiting: Could not get server ID")
-        return
+def main():
+    backend, server_id, api_key = load_conf()
+    headers = {"X-API-Key": api_key, "Content-Type": "application/json"}
+
+    print(f"Agent started for server {server_id} (interval {INTERVAL}s)")
 
     while True:
+        payload = collect_metrics()
         try:
-            data = collect_metrics(server_id)
-            response = requests.post(f"{BACKEND_URL}/metrics/", json=data)
-
-            if response.status_code == 201:
-                print(f"[{datetime.utcnow()}] Metrics sent successfully")
+            r = requests.post(f"{backend}/metrics", json=payload, headers=headers, timeout=5)
+            if r.status_code == 201:
+                print(f"[{datetime.utcnow()}] Metrics OK")
             else:
-                print(f"[{datetime.utcnow()}] Failed to send metrics: {response.text}")
-
-        except Exception as e:
-            print(f"[{datetime.utcnow()}] Error: {e}")
-
+                print(f"[{datetime.utcnow()}] Error {r.status_code}: {r.text}")
+        except Exception as exc:
+            print(f"[{datetime.utcnow()}] Network error: {exc}")
         time.sleep(INTERVAL)
 
+
 if __name__ == "__main__":
-    print("Monitoring Agent Started")
-    send_metrics()
+    main()

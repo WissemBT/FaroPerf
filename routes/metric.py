@@ -7,17 +7,13 @@ from sqlalchemy.orm import Session
 from database import get_db
 from dependencies.api_key_auth import verify_api_key
 from routes.auth import get_current_user
-from schemas.metric import MetricBase, MetricOut
+from schemas.metric import MetricAgentCreate, MetricOut
 from models.metric import Metric
 from models.server import Server
 from models.user import User
 
 
 router = APIRouter(prefix="/metrics", tags=["Metrics"])
-
-
-class MetricAgentCreate(MetricBase):
-    pass
 
 
 @router.post(
