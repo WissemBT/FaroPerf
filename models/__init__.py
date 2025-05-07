@@ -4,3 +4,4 @@ from .alert import Alert
 from .alert_rules import AlertRule
 from .user import User
 from .notification import Notification
+from .api_key import APIKey
